@@ -65,18 +65,10 @@
     a:hover {
         text-decoration: underline;
     }
-    .admin-controls {
+    .admin-controls, .leader-controls {
         display: none;
         text-align: center;
         margin: 20px;
-    }
-    .leader-controls {
-        display: none;
-        text-align: center;
-        margin: 20px;
-    }
-    .admin-controls input, .leader-controls input {
-        width: 200px;
     }
     .topic-actions button, .leader-actions button {
         margin-left: 5px;
@@ -134,9 +126,6 @@
         color: #ff00ff;
         margin-bottom: 5px;
     }
-    .leader a {
-        color: #0ff;
-    }
 </style>
 </head>
 <body>
@@ -151,6 +140,9 @@
         <option value="Web + Pentesting">Web + Pentesting</option>
         <option value="Forensics + Networking">Forensics + Networking</option>
         <option value="Reverse Engineering + Pwn">Reverse Engineering + Pwn</option>
+        <option value="Cryptography">Cryptography</option>
+        <option value="Steganography">Steganography</option>
+        <option value="OSINT">OSINT</option>
     </select>
     <button onclick="exportTXT()">Export TXT</button>
     <button onclick="showAdminLogin()">Admin Login</button>
@@ -165,6 +157,9 @@
         <option value="Web + Pentesting">Web + Pentesting</option>
         <option value="Forensics + Networking">Forensics + Networking</option>
         <option value="Reverse Engineering + Pwn">Reverse Engineering + Pwn</option>
+        <option value="Cryptography">Cryptography</option>
+        <option value="Steganography">Steganography</option>
+        <option value="OSINT">OSINT</option>
     </select>
     <button onclick="addTopic()">Add Topic</button>
 </div>
@@ -178,6 +173,9 @@
         <option value="Web + Pentesting">Web + Pentesting</option>
         <option value="Forensics + Networking">Forensics + Networking</option>
         <option value="Reverse Engineering + Pwn">Reverse Engineering + Pwn</option>
+        <option value="Cryptography">Cryptography</option>
+        <option value="Steganography">Steganography</option>
+        <option value="OSINT">OSINT</option>
     </select>
     <button onclick="addLeader()">Add Leader</button>
     <button onclick="logoutAdmin()">Logout</button>
@@ -200,18 +198,32 @@
 const ADMIN_PASSWORD = "ctfadmin123";
 let isAdmin = false;
 
-let topics = [
-    { name: "SQL Injection Basics", link: "https://portswigger.net/Web + Pentesting-security/sql-injection", category: "Web + Pentesting + Pentesting" },
+// Load from localStorage
+let topics = JSON.parse(localStorage.getItem("ctfTopics")) || [
+    { name: "SQL Injection Basics", link: "https://portswigger.net/web-security/sql-injection", category: "Web + Pentesting" },
     { name: "File Upload Vulnerability", link: "https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload", category: "Web + Pentesting" },
-    { name: "Memory Forensics + Networking with Volatility", link: "https://volatilityfoundation.org/", category: "Forensics + Networking" },
-    { name: "Reverse Engineering + Pwn ELF Files", link: "https://malwareunicorn.org/workshops/re101.html", category: "Reverse Engineering + Pwn" },
+    { name: "Memory Forensics with Volatility", link: "https://volatilityfoundation.org/", category: "Forensics + Networking" },
+    { name: "Reverse Engineering ELF Files", link: "https://malwareunicorn.org/workshops/re101.html", category: "Reverse Engineering + Pwn" },
+    { name: "Cryptography101", link: "https://Cryptography101.io/", category: "Cryptography" },
+    { name: "Steganographyanography Guide", link: "https://0xrick.github.io/lists/Steganographyo/", category: "Steganography" },
+    { name: "OSINT Framework", link: "https://osintframework.com/", category: "OSINT" }
 ];
 
-let leaders = [
-    { name: "Alex Cyber", category: "Web + Pentesting", social: "https://twitter.com/" },
+let leaders = JSON.parse(localStorage.getItem("ctfLeaders")) || [
+    { name: "Alex Cyber", category: "Web + Pentesting", social: "https://facebook.com/" },
     { name: "Sara Bytes", category: "Forensics + Networking", social: "https://linkedin.com/" },
     { name: "Neo Debug", category: "Reverse Engineering + Pwn", social: "https://github.com/" },
 ];
+
+function getSocialPlatform(url) {
+    if (url.includes("facebook.com")) return "Facebook 🌐";
+    if (url.includes("linkedin.com")) return "LinkedIn 💼";
+    if (url.includes("github.com")) return "GitHub 💻";
+    if (url.includes("twitter.com") || url.includes("x.com")) return "Twitter 🐦";
+    if (url.includes("instagram.com")) return "Instagram 📸";
+    if (url.includes("t.me")) return "Telegram 💬";
+    return "Profile 🔗";
+}
 
 function renderTopics() {
     const container = document.getElementById("topicsContainer");
@@ -219,7 +231,7 @@ function renderTopics() {
     const filter = document.getElementById("categoryFilter").value;
 
     container.innerHTML = "";
-    const categories = ["Web + Pentesting", "Forensics + Networking", "Reverse Engineering + Pwn"];
+    const categories = [...new Set(topics.map(t => t.category))];
 
     categories.forEach(cat => {
         const catTopics = topics.filter(
@@ -254,10 +266,11 @@ function renderLeaders() {
     leaders.forEach((leader, index) => {
         const div = document.createElement("div");
         div.className = "leader";
+        const platform = getSocialPlatform(leader.social);
         div.innerHTML = `
             <h3>${leader.category}</h3>
             <p><strong>Name:</strong> ${leader.name}</p>
-            <p><strong>Social:</strong> <a href="${leader.social}" target="_blank">${leader.social}</a></p>
+            <p><strong>Social:</strong> <a href="${leader.social}" target="_blank">${platform}</a></p>
             ${isAdmin ? `
                 <div class="leader-actions">
                     <button onclick="editLeader(${index})">✏️</button>
@@ -267,6 +280,11 @@ function renderLeaders() {
         `;
         container.appendChild(div);
     });
+}
+
+function saveData() {
+    localStorage.setItem("ctfTopics", JSON.stringify(topics));
+    localStorage.setItem("ctfLeaders", JSON.stringify(leaders));
 }
 
 function showAdminLogin() {
@@ -294,62 +312,62 @@ function addTopic() {
     const name = document.getElementById("topicName").value;
     const link = document.getElementById("topicLink").value;
     const category = document.getElementById("topicCategory").value;
-
     if (name && link) {
         topics.push({ name, link, category });
+        saveData();
         renderTopics();
         document.getElementById("topicName").value = "";
         document.getElementById("topicLink").value = "";
-    } else {
-        alert("Please fill all fields!");
-    }
+    } else alert("Please fill all fields!");
 }
 
 function addLeader() {
     const name = document.getElementById("leaderName").value;
     const social = document.getElementById("leaderSocial").value;
     const category = document.getElementById("leaderCategory").value;
-
     if (name && social) {
         leaders.push({ name, social, category });
+        saveData();
         renderLeaders();
         document.getElementById("leaderName").value = "";
         document.getElementById("leaderSocial").value = "";
-    } else {
-        alert("Please fill all fields!");
-    }
+    } else alert("Please fill all fields!");
 }
 
-function editTopic(index) {
-    const newName = prompt("Edit topic name:", topics[index].name);
-    const newLink = prompt("Edit topic link:", topics[index].link);
+function editTopic(i) {
+    const newName = prompt("Edit topic name:", topics[i].name);
+    const newLink = prompt("Edit topic link:", topics[i].link);
     if (newName && newLink) {
-        topics[index].name = newName;
-        topics[index].link = newLink;
+        topics[i].name = newName;
+        topics[i].link = newLink;
+        saveData();
         renderTopics();
     }
 }
 
-function editLeader(index) {
-    const newName = prompt("Edit leader name:", leaders[index].name);
-    const newSocial = prompt("Edit leader social link:", leaders[index].social);
+function editLeader(i) {
+    const newName = prompt("Edit leader name:", leaders[i].name);
+    const newSocial = prompt("Edit leader social:", leaders[i].social);
     if (newName && newSocial) {
-        leaders[index].name = newName;
-        leaders[index].social = newSocial;
+        leaders[i].name = newName;
+        leaders[i].social = newSocial;
+        saveData();
         renderLeaders();
     }
 }
 
-function deleteTopic(index) {
+function deleteTopic(i) {
     if (confirm("Delete this topic?")) {
-        topics.splice(index, 1);
+        topics.splice(i, 1);
+        saveData();
         renderTopics();
     }
 }
 
-function deleteLeader(index) {
+function deleteLeader(i) {
     if (confirm("Delete this leader?")) {
-        leaders.splice(index, 1);
+        leaders.splice(i, 1);
+        saveData();
         renderLeaders();
     }
 }
