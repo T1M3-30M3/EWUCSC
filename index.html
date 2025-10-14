@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CTF Training Portal</title>
+<style>
+    body {
+        background-color: #0a0a0f;
+        color: #e0e0e0;
+        font-family: "Consolas", monospace;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        text-align: center;
+        padding: 20px;
+        border-bottom: 2px solid #0ff;
+    }
+    h1 {
+        color: #00ffff;
+        text-shadow: 0 0 8px #00ffff;
+    }
+    .controls {
+        text-align: center;
+        margin: 20px;
+    }
+    input, select, button {
+        background: #111;
+        color: #0ff;
+        border: 1px solid #0ff;
+        padding: 5px 10px;
+        margin: 5px;
+        border-radius: 5px;
+    }
+    button:hover {
+        background: #0ff;
+        color: #111;
+        cursor: pointer;
+    }
+    .category {
+        margin: 30px;
+        border-left: 3px solid #0ff;
+        padding-left: 15px;
+    }
+    h2 {
+        color: #ff00ff;
+        text-shadow: 0 0 6px #ff00ff;
+    }
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+    li {
+        background: #111;
+        margin: 5px 0;
+        padding: 10px;
+        border: 1px solid #222;
+        border-radius: 8px;
+    }
+    a {
+        color: #00ffff;
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+    .admin-controls {
+        display: none;
+        text-align: center;
+        margin: 20px;
+    }
+    .leader-controls {
+        display: none;
+        text-align: center;
+        margin: 20px;
+    }
+    .admin-controls input, .leader-controls input {
+        width: 200px;
+    }
+    .topic-actions button, .leader-actions button {
+        margin-left: 5px;
+        background: #222;
+        color: #0ff;
+        border: 1px solid #0ff;
+    }
+    .topic-actions button:hover, .leader-actions button:hover {
+        background: #0ff;
+        color: #111;
+    }
+    .footer {
+        border-top: 2px solid #0ff;
+        text-align: center;
+        padding: 20px;
+        margin-top: 40px;
+        background-color: #050509;
+    }
+    .telegram-btn {
+        display: inline-block;
+        margin: 10px;
+        padding: 10px 20px;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        text-decoration: none;
+        border-radius: 10px;
+        text-transform: uppercase;
+        transition: 0.3s;
+    }
+    .telegram-btn:hover {
+        background-color: #00ffff;
+        color: #000;
+        box-shadow: 0 0 10px #00ffff;
+    }
+    .leaderboard {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .leader {
+        display: inline-block;
+        background: #111;
+        border: 1px solid #0ff;
+        border-radius: 10px;
+        margin: 10px;
+        padding: 15px 25px;
+        text-align: left;
+        box-shadow: 0 0 10px #0ff2;
+        transition: 0.3s;
+    }
+    .leader:hover {
+        transform: scale(1.03);
+        box-shadow: 0 0 15px #0ff5;
+    }
+    .leader h3 {
+        color: #ff00ff;
+        margin-bottom: 5px;
+    }
+    .leader a {
+        color: #0ff;
+    }
+</style>
+</head>
+<body>
+<header>
+    <h1>⚡ CTF Training Portal ⚡</h1>
+</header>
+
+<div class="controls">
+    <input type="text" id="searchBox" placeholder="Search topic..." />
+    <select id="categoryFilter">
+        <option value="all">All Categories</option>
+        <option value="Web">Web</option>
+        <option value="Forensics">Forensics</option>
+        <option value="Reverse Engineering">Reverse Engineering</option>
+    </select>
+    <button onclick="exportTXT()">Export TXT</button>
+    <button onclick="showAdminLogin()">Admin Login</button>
+</div>
+
+<!-- Topic admin panel -->
+<div class="admin-controls" id="adminPanel">
+    <h3>Admin Controls - Topics</h3>
+    <input type="text" id="topicName" placeholder="Topic Name" />
+    <input type="text" id="topicLink" placeholder="Topic Link (https://...)" />
+    <select id="topicCategory">
+        <option value="Web">Web</option>
+        <option value="Forensics">Forensics</option>
+        <option value="Reverse Engineering">Reverse Engineering</option>
+    </select>
+    <button onclick="addTopic()">Add Topic</button>
+</div>
+
+<!-- Leader admin panel -->
+<div class="leader-controls" id="leaderPanel">
+    <h3>Admin Controls - Leaders</h3>
+    <input type="text" id="leaderName" placeholder="Leader Name" />
+    <input type="text" id="leaderSocial" placeholder="Social Link (https://...)" />
+    <select id="leaderCategory">
+        <option value="Web">Web</option>
+        <option value="Forensics">Forensics</option>
+        <option value="Reverse Engineering">Reverse Engineering</option>
+    </select>
+    <button onclick="addLeader()">Add Leader</button>
+    <button onclick="logoutAdmin()">Logout</button>
+</div>
+
+<div id="topicsContainer"></div>
+
+<!-- Leaderboard -->
+<div class="leaderboard" id="leaderboardContainer">
+    <h2>👑 Lead By</h2>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <a class="telegram-btn" href="https://t.me/+-TPP2LSoLpYxNWY1" target="_blank">🚀 Join Telegram</a>
+    <p>© 2025 CTF Training Community</p>
+</div>
+
+<script>
+const ADMIN_PASSWORD = "ctfadmin123";
+let isAdmin = false;
+
+let topics = [
+    { name: "SQL Injection Basics", link: "https://portswigger.net/web-security/sql-injection", category: "Web" },
+    { name: "File Upload Vulnerability", link: "https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload", category: "Web" },
+    { name: "Memory Forensics with Volatility", link: "https://volatilityfoundation.org/", category: "Forensics" },
+    { name: "Reverse Engineering ELF Files", link: "https://malwareunicorn.org/workshops/re101.html", category: "Reverse Engineering" },
+];
+
+let leaders = [
+    { name: "Alex Cyber", category: "Web", social: "https://twitter.com/" },
+    { name: "Sara Bytes", category: "Forensics", social: "https://linkedin.com/" },
+    { name: "Neo Debug", category: "Reverse Engineering", social: "https://github.com/" },
+];
+
+function renderTopics() {
+    const container = document.getElementById("topicsContainer");
+    const search = document.getElementById("searchBox").value.toLowerCase();
+    const filter = document.getElementById("categoryFilter").value;
+
+    container.innerHTML = "";
+    const categories = ["Web", "Forensics", "Reverse Engineering"];
+
+    categories.forEach(cat => {
+        const catTopics = topics.filter(
+            t => t.category === cat &&
+            (filter === "all" || t.category === filter) &&
+            t.name.toLowerCase().includes(search)
+        );
+
+        if (catTopics.length > 0) {
+            const div = document.createElement("div");
+            div.className = "category";
+            div.innerHTML = `<h2>${cat}</h2><ul>` +
+                catTopics.map((t, i) =>
+                    `<li><a href="${t.link}" target="_blank">${t.name}</a>` +
+                    (isAdmin ? 
+                    `<span class='topic-actions'>
+                        <button onclick='editTopic(${i})'>✏️</button>
+                        <button onclick='deleteTopic(${i})'>🗑️</button>
+                    </span>` : "") +
+                    `</li>`
+                ).join("") +
+                "</ul>";
+            container.appendChild(div);
+        }
+    });
+}
+
+function renderLeaders() {
+    const container = document.getElementById("leaderboardContainer");
+    container.innerHTML = "<h2>👑 Lead By</h2>";
+
+    leaders.forEach((leader, index) => {
+        const div = document.createElement("div");
+        div.className = "leader";
+        div.innerHTML = `
+            <h3>${leader.category}</h3>
+            <p><strong>Name:</strong> ${leader.name}</p>
+            <p><strong>Social:</strong> <a href="${leader.social}" target="_blank">${leader.social}</a></p>
+            ${isAdmin ? `
+                <div class="leader-actions">
+                    <button onclick="editLeader(${index})">✏️</button>
+                    <button onclick="deleteLeader(${index})">🗑️</button>
+                </div>
+            ` : ""}
+        `;
+        container.appendChild(div);
+    });
+}
+
+function showAdminLogin() {
+    const pwd = prompt("Enter Admin Password:");
+    if (pwd === ADMIN_PASSWORD) {
+        isAdmin = true;
+        document.getElementById("adminPanel").style.display = "block";
+        document.getElementById("leaderPanel").style.display = "block";
+        renderTopics();
+        renderLeaders();
+    } else {
+        alert("Incorrect password!");
+    }
+}
+
+function logoutAdmin() {
+    isAdmin = false;
+    document.getElementById("adminPanel").style.display = "none";
+    document.getElementById("leaderPanel").style.display = "none";
+    renderTopics();
+    renderLeaders();
+}
+
+function addTopic() {
+    const name = document.getElementById("topicName").value;
+    const link = document.getElementById("topicLink").value;
+    const category = document.getElementById("topicCategory").value;
+
+    if (name && link) {
+        topics.push({ name, link, category });
+        renderTopics();
+        document.getElementById("topicName").value = "";
+        document.getElementById("topicLink").value = "";
+    } else {
+        alert("Please fill all fields!");
+    }
+}
+
+function addLeader() {
+    const name = document.getElementById("leaderName").value;
+    const social = document.getElementById("leaderSocial").value;
+    const category = document.getElementById("leaderCategory").value;
+
+    if (name && social) {
+        leaders.push({ name, social, category });
+        renderLeaders();
+        document.getElementById("leaderName").value = "";
+        document.getElementById("leaderSocial").value = "";
+    } else {
+        alert("Please fill all fields!");
+    }
+}
+
+function editTopic(index) {
+    const newName = prompt("Edit topic name:", topics[index].name);
+    const newLink = prompt("Edit topic link:", topics[index].link);
+    if (newName && newLink) {
+        topics[index].name = newName;
+        topics[index].link = newLink;
+        renderTopics();
+    }
+}
+
+function editLeader(index) {
+    const newName = prompt("Edit leader name:", leaders[index].name);
+    const newSocial = prompt("Edit leader social link:", leaders[index].social);
+    if (newName && newSocial) {
+        leaders[index].name = newName;
+        leaders[index].social = newSocial;
+        renderLeaders();
+    }
+}
+
+function deleteTopic(index) {
+    if (confirm("Delete this topic?")) {
+        topics.splice(index, 1);
+        renderTopics();
+    }
+}
+
+function deleteLeader(index) {
+    if (confirm("Delete this leader?")) {
+        leaders.splice(index, 1);
+        renderLeaders();
+    }
+}
+
+function exportTXT() {
+    let text = topics.map(t => `[${t.category}] ${t.name} - ${t.link}`).join("\n");
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ctf_topics.txt";
+    a.click();
+}
+
+document.getElementById("searchBox").addEventListener("input", renderTopics);
+document.getElementById("categoryFilter").addEventListener("change", renderTopics);
+
+renderTopics();
+renderLeaders();
+</script>
+</body>
+</html>
